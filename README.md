@@ -67,6 +67,8 @@ Substituição do motor de respostas fixas (`if/else` por palavras-chave) por ch
 
 ## Dados Utilizados pela IA
 
+[Ver diagrama interativo](https://pet-familyy.github.io/PET-FAMILY-IA/docs/architecture-diagram.html)
+
 ### Perfil do Pet (AsyncStorage — App Mobile)
 
 | Campo | Tipo | Uso pela IA |
