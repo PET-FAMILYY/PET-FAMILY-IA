@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pet Family IA — Arquitetura</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131929;
+    --border: #1e2d45;
+    --border2: #243450;
+    --purple: #7c6af7;
+    --purple-d: #5b4dd4;
+    --purple-glow: rgba(124,106,247,0.18);
+    --green: #34d399;
+    --green-glow: rgba(52,211,153,0.15);
+    --amber: #fbbf24;
+    --amber-glow: rgba(251,191,36,0.12);
+    --blue: #60a5fa;
+    --blue-glow: rgba(96,165,250,0.12);
+    --red: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --muted2: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .title-block {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .title-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--purple);
+    margin-bottom: 10px;
+  }
+  .title-main {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: var(--text);
+  }
+  .title-sub {
+    font-size: 13px;
+    color: var(--muted2);
+    margin-top: 6px;
+  }
+
+  /* ── CANVAS ── */
+  .canvas {
+    width: 100%;
+    max-width: 920px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  /* ── ROW ── */
+  .row {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  /* ── NODE ── */
+  .node {
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    padding: 18px 20px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .node:hover { border-color: var(--border2); }
+
+  .node-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .node-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .node-sub {
+    font-size: 11px;
+    color: var(--muted2);
+    line-height: 1.5;
+  }
+
+  .node-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* colours */
+  .col-purple { border-color: var(--purple-glow); background: #12102a; }
+  .col-purple .node-label { color: var(--purple); }
+  .col-purple:hover { border-color: var(--purple); box-shadow: 0 0 24px var(--purple-glow); }
+
+  .col-green { border-color: var(--green-glow); background: #0d1f1a; }
+  .col-green .node-label { color: var(--green); }
+  .col-green:hover { border-color: var(--green); box-shadow: 0 0 24px var(--green-glow); }
+
+  .col-amber { border-color: var(--amber-glow); background: #1a1700; }
+  .col-amber .node-label { color: var(--amber); }
+  .col-amber:hover { border-color: var(--amber); box-shadow: 0 0 24px var(--amber-glow); }
+
+  .col-blue { border-color: var(--blue-glow); background: #0d1629; }
+  .col-blue .node-label { color: var(--blue); }
+  .col-blue:hover { border-color: var(--blue); box-shadow: 0 0 24px var(--blue-glow); }
+
+  .badge-purple { background: rgba(124,106,247,.2); color: var(--purple); }
+  .badge-green  { background: rgba(52,211,153,.2);  color: var(--green);  }
+  .badge-amber  { background: rgba(251,191,36,.2);  color: var(--amber);  }
+  .badge-blue   { background: rgba(96,165,250,.2);  color: var(--blue);   }
+
+  /* ── CONNECTOR BLOCK ── */
+  .connector-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0 40px;
+    margin: 4px 0;
+  }
+  .conn-line {
+    height: 2px;
+    flex: 1;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  }
+  .conn-pill {
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--muted2);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: .01em;
+  }
+  .conn-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  /* ── VERTICAL CONNECTOR ── */
+  .v-conn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 0;
+  }
+  .v-line {
+    width: 2px;
+    height: 24px;
+    background: linear-gradient(180deg, var(--border2), transparent);
+  }
+  .v-line-r { background: linear-gradient(180deg, transparent, var(--border2)); }
+  .v-pill {
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── FIELD LIST ── */
+  .field-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .field-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--purple);
+    white-space: nowrap;
+  }
+  .field-key-green { color: var(--green); }
+  .field-key-amber { color: var(--amber); }
+  .field-key-blue  { color: var(--blue);  }
+  .field-val { color: var(--muted2); }
+
+  /* ── PROMPT BOX ── */
+  .prompt-box {
+    background: #0f0f1e;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--muted2);
+  }
+  .pm-comment { color: #3d5266; }
+  .pm-key { color: var(--purple); }
+  .pm-val { color: var(--green); }
+  .pm-str { color: var(--amber); }
+
+  /* ── BOTTOM ROW ── */
+  .split-row {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr;
+    gap: 0;
+    align-items: start;
+    width: 100%;
+  }
+  .split-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 32px;
+  }
+  .split-divider-line {
+    width: 2px;
+    flex: 1;
+    min-height: 60px;
+    background: var(--border2);
+  }
+
+  .step-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--muted2);
+    line-height: 1.5;
+  }
+  .step-num {
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(124,106,247,.2);
+    color: var(--purple);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 40px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--muted2);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 36px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <div class="title-eyebrow">🐾 Pet Family IA — Sprint 3 · FIAP 2026</div>
+  <div class="title-main">Arquitetura de Integração com IA Generativa</div>
+  <div class="title-sub">Gemini 1.5 Flash · Expo React Native · ESP32 IoT · AsyncStorage</div>
+</div>
+
+<div class="canvas">
+
+  <!-- ── LAYER 1: APP MOBILE ── -->
+  <div class="row">
+    <div class="node col-purple" style="flex:1">
+      <div class="node-label">📱 Camada de Interface — App Mobile</div>
+      <div class="node-title">chat.tsx — Tela de Conversa</div>
+      <div class="node-sub">React Native · Expo Router · Interface estilo WhatsApp</div>
+      <div class="field-list">
+        <div class="field-row">
+          <span class="field-key">send()</span>
+          <span class="field-val">captura a mensagem do usuário e chama geminiService</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">isTyping</span>
+          <span class="field-val">exibe animação de 3 pontos enquanto a API responde</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">messages[]</span>
+          <span class="field-val">histórico local da conversa — alimenta o contexto do LLM</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">QUICK_REPLIES</span>
+          <span class="field-val">atalhos rápidos: Vacina · Vermífugo · Check-up · Sintomas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── V CONNECTOR 1 ── -->
+  <div class="v-conn">
+    <div class="v-line"></div>
+    <div class="v-pill">
+      <span style="color:var(--purple)">▼</span>
+      chama <strong style="color:var(--text)">geminiService.getResponse(message, history)</strong>
+    </div>
+    <div class="v-line v-line-r"></div>
+  </div>
+
+  <!-- ── LAYER 2: SERVICE ── -->
+  <div class="row">
+    <div class="node col-purple" style="flex:1">
+      <div class="node-label">⚙️ Camada de Serviço — geminiService.ts <span class="node-badge badge-purple" style="margin-left:6px">NOVO</span></div>
+      <div class="node-title">Motor de Inteligência Artificial</div>
+      <div class="node-sub">Orquestra os dados do pet, do IoT e do histórico para montar o prompt dinâmico</div>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <span><strong style="color:var(--text)">getPet()</strong> — busca perfil do pet no AsyncStorage (nome, espécie, raça, idade, peso, notas)</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <span><strong style="color:var(--text)">fetchIoTStatus()</strong> — GET /api/status no ESP32 via WiFi local (temp, umidade, ração, última refeição)</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <span><strong style="color:var(--text)">buildSystemPrompt()</strong> — injeta perfil + IoT num system prompt estruturado em linguagem natural</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <span><strong style="color:var(--text)">callGemini()</strong> — envia system prompt + histórico (últimas 10 msgs) + nova mensagem para a API</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <span>Retorna texto da resposta → chat.tsx exibe na bolha <strong style="color:var(--text)">"ai"</strong></span>
+        </div>
+      </div>
+
+      <div class="prompt-box">
+        <span class="pm-comment">// system prompt gerado dinamicamente a cada mensagem</span><br>
+        <span class="pm-key">Você é</span> <span class="pm-str">"Assistente Pet Family, veterinário virtual preventivo."</span><br>
+        <span class="pm-key">Pet:</span> <span class="pm-val">Rex</span>, Labrador, 3 anos, macho, 28 kg<br>
+        <span class="pm-key">Notas:</span> <span class="pm-str">"alergia a frango, vacinado em mar/2025"</span><br>
+        <span class="pm-key">IoT agora:</span> temp <span class="pm-val">27.3°C</span>, umidade <span class="pm-val">61%</span>, ração <span class="pm-val">68%</span><br>
+        <span class="pm-key">Última refeição:</span> <span class="pm-val">08:12</span> · <span class="pm-val">2</span> alimentações hoje<br>
+        <span class="pm-comment">// responda em pt-BR, empático, baseado nos dados reais</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── H CONNECTOR → split ── -->
+  <div style="display:flex; align-items:flex-start; gap:0; margin: 6px 0; padding: 0 60px; justify-content:space-between;">
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:2px;height:28px;background:var(--border2);"></div>
+      <div class="v-pill"><span style="color:var(--amber)">▼</span> GET /api/status · WiFi local</div>
+      <div style="width:2px;height:16px;background:var(--border2);"></div>
+    </div>
+    <div style="width:160px;display:flex;align-items:center;justify-content:center;padding-top:8px;">
+      <div style="height:2px;flex:1;background:var(--border2);"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:2px;height:28px;background:var(--border2);"></div>
+      <div class="v-pill"><span style="color:var(--purple)">▼</span> HTTPS · Gemini API</div>
+      <div style="width:2px;height:16px;background:var(--border2);"></div>
+    </div>
+  </div>
+
+  <!-- ── LAYER 3: IOT + GEMINI ── -->
+  <div class="row">
+
+    <!-- IoT -->
+    <div class="node col-amber" style="flex:1">
+      <div class="node-label">📡 Hardware — ESP32 Smart Feeder</div>
+      <div class="node-title">PET-FAMILY-IOT</div>
+      <div class="node-sub">Servidor web embutido na porta 80 via WiFi</div>
+      <div class="field-list" style="margin-top:12px">
+        <div class="field-row">
+          <span class="field-key field-key-amber">temperature</span>
+          <span class="field-val">float — DHT22 (°C)</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">humidity</span>
+          <span class="field-val">float — DHT22 (%)</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">foodLevel</span>
+          <span class="field-val">int 0–100% — nível de ração</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">lastFeedTime</span>
+          <span class="field-val">string — ex: "08:12:34"</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">feedCount</span>
+          <span class="field-val">int — alimentações no dia</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">nextFeedIn</span>
+          <span class="field-val">int ms — próxima automática</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">doorState</span>
+          <span class="field-val">CLOSED | OPENING | OPEN</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-amber">currentTime</span>
+          <span class="field-val">string — NTP UTC-3 (Brasília)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div style="width:16px; display:flex; align-items:center; justify-content:center;">
+      <div style="width:2px;height:100%;background:var(--border);border-radius:1px;"></div>
+    </div>
+
+    <!-- Gemini -->
+    <div class="node col-purple" style="flex:1">
+      <div class="node-label">🤖 IA — Google Gemini API</div>
+      <div class="node-title">gemini-1.5-flash</div>
+      <div class="node-sub">LLM via API REST · HTTPS</div>
+      <div class="field-list" style="margin-top:12px">
+        <div class="field-row">
+          <span class="field-key">model</span>
+          <span class="field-val">gemini-1.5-flash</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">system_instruction</span>
+          <span class="field-val">prompt dinâmico com contexto</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">contents[]</span>
+          <span class="field-val">histórico + mensagem atual</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">temperature</span>
+          <span class="field-val">0.7 — criativo mas preciso</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key">max_tokens</span>
+          <span class="field-val">500 — respostas concisas</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(124,106,247,.08);border-radius:8px;border-left:2px solid var(--purple);">
+        <div style="font-size:10px;color:var(--muted2);line-height:1.6;">
+          Conhecimento veterinário <strong style="color:var(--text)">embutido no modelo</strong> — sem necessidade de fine-tuning. Personalização 100% via <strong style="color:var(--text)">prompt engineering</strong> com dados reais do pet.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── LAYER 4: STORAGE ── -->
+  <div style="display:flex;align-items:flex-start;gap:0;margin:6px 0;padding:0 60px;justify-content:space-between;">
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:2px;height:28px;background:var(--border2);"></div>
+      <div class="v-pill"><span style="color:var(--green)">▼</span> dados locais do pet</div>
+      <div style="width:2px;height:16px;background:var(--border2);"></div>
+    </div>
+    <div style="width:160px;"></div>
+    <div style="flex:1;"></div>
+  </div>
+
+  <div class="row">
+    <div class="node col-green" style="flex:1">
+      <div class="node-label">💾 Armazenamento Local — AsyncStorage</div>
+      <div class="node-title">Perfil do Pet</div>
+      <div class="node-sub">React Native AsyncStorage — persistência local no dispositivo</div>
+      <div class="field-list">
+        <div class="field-row">
+          <span class="field-key field-key-green">name</span>
+          <span class="field-val">string — ex: "Rex"</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-green">species</span>
+          <span class="field-val">"dog" | "cat"</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-green">breed</span>
+          <span class="field-val">string — ex: "Labrador Retriever"</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-green">age</span>
+          <span class="field-val">number — anos</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-green">weight</span>
+          <span class="field-val">number — kg</span>
+        </div>
+        <div class="field-row">
+          <span class="field-key field-key-green">healthNotes</span>
+          <span class="field-val">string — vacinas, alergias, condições</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; color: var(--muted); font-size:12px; font-style:italic; padding: 20px;">
+      ← lido pelo geminiService<br>a cada nova mensagem
+    </div>
+  </div>
+
+</div>
+
+<!-- ── LEGEND ── -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--purple);"></div>
+    App Mobile / IA
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--amber);"></div>
+    Hardware IoT (ESP32)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--green);"></div>
+    Armazenamento Local
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--blue);"></div>
+    API Externa
+  </div>
+</div>
+
+<div class="footer">
+  Pet Family IA · FIAP 2026 · Disruptive Architectures: IoT, IoB &amp; Generative IA · Sprint 3 — Entrega 12/09/2026
+</div>
+
+</body>
+</html>
