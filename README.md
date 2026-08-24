@@ -136,4 +136,4 @@ PET-FAMILY-IA/
 
 > **FIAP 2026** · Challenge Clyvo Vet · 2º Semestre  
 > Disciplina: Disruptive Architectures: IoT, IoB & Generative IA  
-> Prof. Arnaldo · Turma 2TDS · Entrega Sprint 3: **12/09/2026**
+> Prof. Arnaldo · Turma 2TDSPG · Entrega Sprint 3: **12/09/2026**
