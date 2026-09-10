@@ -123,6 +123,10 @@ PET-FAMILY-IA/
 
 ---
 
+## Link Vídeo Pitch
+
+[Clique aqui para assistir ao vídeo](https://youtu.be/yRoGgqYLlVg)
+
 ## Integrantes
 
 | Nome | RM | Turma |
