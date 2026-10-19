@@ -117,7 +117,6 @@ def chat(req: MensagemRequest):
         )
 
     try:
-        # se há histórico, usa chat; senão, chamada simples
         if historico_sdk:
             chat_session = cliente.chats.create(
                 model=MODELO,
