@@ -27,7 +27,7 @@ app.add_middleware(
 
 # inicializa o cliente Gemini com a chave do ambiente
 cliente = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-MODELO = "gemini-2.0-flash"
+MODELO = "gemini-3.8-flash"
 
 # armazenamento em memória das interações (por sessão)
 # chave: petId → lista de InteracaoIAResponse
