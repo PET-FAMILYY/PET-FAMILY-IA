@@ -1,6 +1,6 @@
 # 🐾 Pet Family IA — Assistente Veterinário com IA Generativa
 
-> Componente de Inteligência Artificial do projeto Pet Family — integração com Gemini API para orientação veterinária preventiva personalizada, contextualizada com dados reais do pet e do comedouro IoT.
+> Componente de Inteligência Artificial do projeto Pet Family — API FastAPI integrada com Gemini API (Google AI) para orientação veterinária preventiva personalizada, contextualizada com os dados reais do pet cadastrado no aplicativo mobile.
 
 ---
 
@@ -8,38 +8,36 @@
 
 O **Pet Family** é um ecossistema de cuidado contínuo para pets desenvolvido para o **Challenge FIAP 2026 — Clyvo Vet**. A plataforma conecta tutores, pets e clínicas veterinárias, promovendo o acompanhamento preventivo e a recorrência de consultas.
 
-Este repositório concentra a proposta, arquitetura e documentação do componente de **Inteligência Artificial Generativa** que alimenta o Assistente Pet Family — presente na tela de chat do aplicativo mobile.
+Este repositório concentra a proposta, arquitetura e o código do componente de **Inteligência Artificial Generativa** (PetDoc API) que alimenta o Assistente Pet Family — presente na tela de chat do aplicativo mobile.
 
 ---
 
 ## Problema de Negócio
 
-Tutores de pets frequentemente não sabem interpretar sinais do cotidiano do animal — hábitos alimentares irregulares, temperatura ambiente inadequada, comportamentos atípicos — sem orientação especializada. Isso resulta em:
+Tutores de pets frequentemente não sabem interpretar sinais do cotidiano do animal — alimentação irregular, comportamentos atípicos, dúvidas sobre vacinas e vermifugação — sem orientação especializada. Isso resulta em:
 
 - Consultas veterinárias apenas em emergências, reduzindo a recorrência nas clínicas
-- Dados coletados pelo comedouro IoT (temperatura, umidade, nível de ração, frequência de alimentação) subutilizados — existem, mas não geram valor ao tutor
+- Dados do pet cadastrados no app (raça, idade, peso, observações de saúde) sem uso real nas respostas
 - Assistente de chat com respostas fixas baseadas em palavras-chave, sem capacidade de entender contexto ou perguntas inéditas
 
 ---
 
 ## Solução Proposta: IA Generativa com Contexto Dinâmico
 
-Substituição do motor de respostas fixas (`if/else` por palavras-chave) por chamadas reais à **Gemini API (Google AI)**, com um **system prompt dinâmico** que injeta:
+Substituição do motor de respostas fixas (`AssistenteIASimulado` do backend Java) por chamadas reais à **Gemini API (Google AI)**, com um **system prompt dinâmico** que injeta:
 
-- Perfil completo do pet (nome, espécie, raça, idade, peso, notas de saúde)
-- Dados em tempo real do comedouro IoT (temperatura, umidade, nível de ração, horário da última alimentação, contagem de refeições do dia)
-- Histórico recente da conversa (últimas 10 mensagens para continuidade de contexto)
+- Perfil completo do pet (nome, espécie, raça, idade, peso, observações de saúde)
+- Histórico recente da conversa (mantido em memória por `petId`)
 
 ---
 
 ## Como a IA Agrega Valor
 
-| Cenário | Sem IA (atual) | Com IA Generativa |
+| Cenário | Sem IA (simulado) | Com IA Generativa |
 |---|---|---|
-| "Meu gato comeu hoje?" | Não sabe responder | Consulta dados do IoT e responde com horário e quantidade |
-| "A temperatura tá boa para o Rex?" | Resposta genérica | Usa os °C do DHT22 e o perfil da raça para orientar |
-| "Ele tá comendo menos que o normal" | Redireciona ao veterinário | Analisa histórico de alimentações e sugere observação ou consulta |
-| "Vacina dele vence quando?" | Não tem essa informação | Responde com base nas notas de saúde cadastradas no perfil |
+| "Meu gato pode comer abacate?" | Resposta genérica por palavra-chave | Resposta contextualizada pela espécie e raça cadastrada |
+| "Ele tá comendo menos que o normal" | Redireciona ao veterinário | Analisa o perfil do pet e sugere observação ou consulta |
+| "Vacina dele vence quando?" | Não tem essa informação | Responde com base nas observações de saúde cadastradas |
 | Pergunta inédita | Resposta de fallback genérica | Raciocínio contextual real via LLM |
 
 ---
@@ -50,64 +48,141 @@ Substituição do motor de respostas fixas (`if/else` por palavras-chave) por ch
 
 | Abordagem | Por que descartada |
 |---|---|
-| Sistema de regras (if/else) | Já existe, não escala, não entende contexto nem perguntas inéditas |
+| Sistema de regras (if/else) | Já existia, não escala, não entende contexto nem perguntas inéditas |
 | Modelo preditivo treinado | Requer dataset próprio de saúde veterinária — inviável no prazo |
 | Sistema de recomendação | Focado em itens/produtos, não em diálogo natural livre |
 | NLP clássico (intent detection) | Limitado a intenções pré-definidas, sem raciocínio contextual |
 
-### Por que Gemini 1.5 Flash
+### Por que Gemini (Google AI Studio)
 
-- É a abordagem ensinada na disciplina (Gemini API, prompt engineering)
-- O modelo já possui conhecimento veterinário preventivo embutido — não requer fine-tuning
-- Personalização via **prompt engineering**: contexto do pet e do IoT injetado a cada requisição
+- Abordagem ensinada na disciplina (Gemini API, prompt engineering)
+- O modelo já possui conhecimento veterinário preventivo embutido — sem necessidade de fine-tuning
+- Personalização via **prompt engineering**: perfil do pet injetado a cada requisição
 - Gratuito no Google AI Studio para uso acadêmico
-- API REST simples, integrável diretamente no app mobile
+- SDK Python simples (`google-genai`), integrável diretamente na API FastAPI
+
+---
+
+## Arquitetura de Integração (Sprint 4)
+
+**Fluxo:**
+
+```
+Tutor (app mobile — chat.tsx)
+        ↓ POST /interacoes-ia com dados do pet
+PetDoc API (FastAPI — pet-family-ia.onrender.com)
+  ├── 1. Recebe pergunta + perfil completo do pet
+  ├── 2. Monta system prompt dinâmico com contexto do pet
+  ├── 3. Envia para Gemini API via google-genai SDK
+  ├── 4. Armazena interação em memória (por petId)
+  └── 5. Retorna resposta em linguagem natural
+        ↓
+chat.tsx exibe resposta na bolha do assistente
+```
+
+---
+
+## Endpoints da API
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/health` | Health check do serviço |
+| `POST` | `/interacoes-ia` | Envia pergunta e recebe resposta do assistente (usado pelo mobile) |
+| `GET` | `/interacoes-ia/pet/{pet_id}` | Lista histórico de interações de um pet |
+| `POST` | `/chat` | Endpoint acadêmico usado no notebook (Labs 1–3) |
+
+### Exemplo de requisição — `POST /interacoes-ia`
+
+```json
+{
+  "pergunta": "Quais vacinas meu pet precisa?",
+  "petId": 1,
+  "petNome": "Bolinha",
+  "petEspecie": "cachorro",
+  "petRaca": "Golden Retriever",
+  "petIdade": 3,
+  "petPeso": 28.0,
+  "petObservacoes": "Alergia a frango"
+}
+```
+
+### Exemplo de resposta
+
+```json
+{
+  "id": 1,
+  "pergunta": "Quais vacinas meu pet precisa?",
+  "resposta": "Oi! Para o Bolinha, um Golden Retriever de 3 anos, as vacinas essenciais são...",
+  "dataHora": "2026-11-02T21:00:00+00:00",
+  "categoria": null,
+  "petId": 1,
+  "petNome": "Bolinha"
+}
+```
 
 ---
 
 ## Dados Utilizados pela IA
 
-[Ver diagrama interativo](https://pet-familyy.github.io/PET-FAMILY-IA/docs/architecture-diagram.html)
-
-### Perfil do Pet (AsyncStorage — App Mobile)
+### Perfil do Pet (enviado pelo app mobile)
 
 | Campo | Tipo | Uso pela IA |
 |---|---|---|
-| `name` | string | Personalização das respostas |
-| `species` | `dog` \| `cat` | Adapta recomendações por espécie |
-| `breed` | string | Considera predisposições da raça |
-| `age` | number | Ajusta frequências de vacina, check-up e vermifugação |
-| `weight` | number | Orientações de dosagem e nutrição |
-| `healthNotes` | string | Contexto de condições preexistentes |
-
-### Comedouro IoT (ESP32 REST API — `GET /api/status`)
-
-| Campo | Tipo | Uso pela IA |
-|---|---|---|
-| `temperature` | float | Alerta se fora da faixa ideal para a espécie/raça |
-| `humidity` | float | Contexto ambiental para saúde respiratória |
-| `foodLevel` | int (0–100%) | Informa nível de ração e sugere reabastecimento |
-| `lastFeedTime` | string | Informa horário da última refeição |
-| `feedCount` | int | Monitora frequência de alimentação do dia |
-| `nextFeedIn` | int (ms) | Informa quando será a próxima alimentação automática |
+| `petNome` | string | Personalização das respostas (chama o pet pelo nome) |
+| `petEspecie` | string | Adapta recomendações por espécie |
+| `petRaca` | string | Considera predisposições da raça |
+| `petIdade` | float | Ajusta frequências de vacina, check-up e vermifugação |
+| `petPeso` | float | Orientações de dosagem e nutrição |
+| `petObservacoes` | string | Contexto de condições preexistentes |
 
 ---
 
-## Arquitetura de Integração
+## Stack Técnica
 
-**Fluxo resumido:**
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| Python | 3.11 | Linguagem principal |
+| FastAPI | 0.143.0 | Framework da API REST |
+| google-genai | 2.29.0 | SDK oficial do Gemini API |
+| Uvicorn | 0.54.0 | Servidor ASGI |
+| Render | — | Deploy em nuvem (plano gratuito) |
 
-```
-Tutor (App Mobile — chat.tsx)
-        ↓ mensagem do usuário
-geminiService.ts
-  ├── 1. Busca perfil do pet → AsyncStorage
-  ├── 2. Busca dados do IoT  → GET /api/status (ESP32)
-  ├── 3. Monta system prompt dinâmico com contexto completo
-  ├── 4. Envia histórico + mensagem → Gemini API
-  └── 5. Retorna resposta em linguagem natural
-        ↓
-chat.tsx exibe resposta na bolha "ai"
+---
+
+## Deploy
+
+A API está deployada no Render:
+
+**Base URL:** `https://pet-family-ia.onrender.com`
+
+> O plano gratuito do Render hiberna após inatividade. O primeiro acesso pode demorar até 2 minutos (cold start).
+
+### Variáveis de ambiente necessárias
+
+| Variável | Descrição |
+|---|---|
+| `GEMINI_API_KEY` | Chave da Gemini API (Google AI Studio) |
+
+### Como rodar localmente
+
+```bash
+# clonar o repositório
+git clone https://github.com/PET-FAMILYY/PET-FAMILY-IA.git
+cd PET-FAMILY-IA/pet-family-ia
+
+# criar e ativar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# instalar dependências
+pip install -r requirements.txt
+
+# configurar variável de ambiente
+cp .env.example .env
+# editar .env e adicionar sua GEMINI_API_KEY
+
+# rodar a API
+uvicorn app.main:app --reload --port 8000
 ```
 
 ---
@@ -117,15 +192,47 @@ chat.tsx exibe resposta na bolha "ai"
 ```
 PET-FAMILY-IA/
 ├── README.md
-└── docs/
-    └── architecture-diagram.html
+├── assistente_pet_family.ipynb    ← notebook acadêmico (Labs 1–3)
+├── docs/
+│   └── architecture-diagram.html  ← diagrama interativo da arquitetura
+└── pet-family-ia/
+    ├── app/
+    │   └── main.py                ← código da API FastAPI + integração Gemini
+    ├── requirements.txt
+    ├── Dockerfile
+    ├── render.yaml
+    └── .env.example
 ```
 
 ---
 
-## Link Vídeo Pitch
+## Evolução entre Sprints
 
-[Clique aqui para assistir ao vídeo](https://youtu.be/yRoGgqYLlVg)
+### Sprint 3 — Proposta e Arquitetura
+- Definição da abordagem de IA Generativa com Gemini
+- Documentação do problema de negócio e solução proposta
+- Arquitetura de integração planejada (mobile → IA → Gemini)
+- Diagrama interativo da arquitetura
+
+### Sprint 4 — Implementação e Integração
+- **API FastAPI implementada** com endpoints `/interacoes-ia` e `/chat`
+- **System prompt dinâmico** com injeção de dados reais do pet
+- **Histórico em memória** por `petId` para continuidade de contexto
+- **Deploy no Render** com variáveis de ambiente seguras
+- **Integração com o app mobile** — `chat.tsx` + `interacoesIaApi.ts` chamando a API com retry automático (3 tentativas com backoff para lidar com cold start e sobrecarga do Gemini)
+- **Notebook acadêmico** (`assistente_pet_family.ipynb`) demonstrando Labs 1–3 com o endpoint `/chat`
+- Testes validados em cenários reais de uso via Postman e Expo Go
+
+---
+
+## Vídeos
+
+| Sprint | Link |
+|---|---|
+| Sprint 3 — Pitch e Proposta | [Assistir no YouTube](https://youtu.be/yRoGgqYLlVg) |
+| Sprint 4 — Demonstração da IA implementada | _em breve_ |
+
+---
 
 ## Integrantes
 
@@ -140,4 +247,5 @@ PET-FAMILY-IA/
 
 > **FIAP 2026** · Challenge Clyvo Vet · 2º Semestre  
 > Disciplina: Disruptive Architectures: IoT, IoB & Generative IA  
-> Prof. Arnaldo · Turma 2TDSPG · Entrega Sprint 3: **12/09/2026**
+> Prof. Arnaldo · Turma 2TDSPG  
+> Sprint 3: 12/09/2026 · Sprint 4: 04/11/2026
