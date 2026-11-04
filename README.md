@@ -230,7 +230,7 @@ PET-FAMILY-IA/
 | Sprint | Link |
 |---|---|
 | Sprint 3 — Pitch e Proposta | [Assistir no YouTube](https://youtu.be/yRoGgqYLlVg) |
-| Sprint 4 — Demonstração da IA implementada | _em breve_ |
+| Sprint 4 — Demonstração da IA implementada | [Assistir no YouTube](https://youtu.be/SFHiU1p0MBQ) |
 
 ---
 
